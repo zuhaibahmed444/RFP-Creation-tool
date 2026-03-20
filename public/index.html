@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Commvault POC Document Generator</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Aptos', 'Segoe UI', sans-serif;
+      background: url('/assets/background.jpg') no-repeat center center fixed;
+      background-size: cover;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .container {
+      background: rgba(255, 255, 255, 0.95);
+      padding: 40px;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(112, 48, 160, 0.2);
+      width: 520px;
+      max-width: 95%;
+      border-top: 4px solid #7030A0;
+    }
+    .logo { display: block; margin: 0 auto 20px; height: 40px; }
+    h1 { font-size: 1.3rem; color: #7030A0; margin-bottom: 24px; text-align: center; font-weight: 700; }
+    .section-title { font-size: 0.8rem; color: #7030A0; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; margin: 20px 0 12px; padding-bottom: 6px; border-bottom: 2px solid #7030A0; }
+    label { display: block; font-weight: 600; margin-bottom: 6px; color: #444; font-size: 0.85rem; }
+    input[type="text"], input[type="email"] {
+      width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 6px;
+      font-size: 0.9rem; margin-bottom: 14px; font-family: inherit;
+    }
+    input:focus { outline: none; border-color: #7030A0; box-shadow: 0 0 0 2px rgba(112, 48, 160, 0.15); }
+    .workload-list { margin-bottom: 12px; }
+    .workload-item { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .workload-item input { flex: 1; margin-bottom: 0; }
+    .btn-remove { background: #e74c3c; color: #fff; border: none; border-radius: 6px; padding: 8px 12px; cursor: pointer; font-size: 0.8rem; }
+    .btn-remove:hover { background: #c0392b; }
+    .btn-add { background: #7030A0; color: #fff; border: none; border-radius: 6px; padding: 8px 16px; cursor: pointer; font-size: 0.85rem; margin-bottom: 8px; }
+    .btn-add:hover { background: #5b2680; }
+</style>
+</head>
+<body>
+  <div class="container">
+    <img src="/assets/commvault-logo.jpg" alt="Commvault" class="logo">
+    <h1>POC Document Generator</h1>
+    <form id="pocForm">
+      <div class="section-title">Client Details</div>
+      <label for="clientName">Client Name</label>
+      <input type="text" id="clientName" placeholder="Enter client name" required>
+
+      <label>Workloads</label>
+      <div class="workload-list" id="workloadList">
+        <div class="workload-item">
+          <input type="text" class="workload-input" placeholder="e.g. VMware, Azure, SAP HANA" required>
+          <button type="button" class="btn-remove" onclick="removeWorkload(this)" aria-label="Remove workload">✕</button>
+        </div>
+      </div>
+      <button type="button" class="btn-add" onclick="addWorkload()">+ Add Workload</button>
+
+      <div class="section-title">POC Team</div>
+      <label for="salesRepName">Sales Rep Name</label>
+      <input type="text" id="salesRepName" placeholder="Enter sales rep name" required>
+
+      <label for="salesRepRole">Sales Rep Role</label>
+      <input type="text" id="salesRepRole" placeholder="Enter sales rep role" required>
+
+      <label for="salesRepEmail">Sales Rep Email</label>
+      <input type="email" id="salesRepEmail" placeholder="Enter sales rep email" required>
+
+      <button type="submit" class="btn-submit" id="submitBtn">Generate POC Document</button>
+      <div id="status"></div>
+    </form>
+  </div>
+</body>
+</html>
+<style>
+    .btn-submit {
+      width: 100%; padding: 12px; background: #7030A0; color: #fff; border: none;
+      border-radius: 6px; font-size: 1rem; font-weight: 600; cursor: pointer; margin-top: 20px; font-family: inherit;
+    }
+    .btn-submit:hover { background: #5b2680; }
+    .btn-submit:disabled { background: #aaa; cursor: not-allowed; }
+    #status { margin-top: 12px; text-align: center; font-size: 0.85rem; color: #666; }
+    .error { color: #e74c3c !important; }
+    .success { color: #27ae60 !important; }
+    .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid #ccc; border-top-color: #7030A0; border-radius: 50%; animation: spin 0.6s linear infinite; vertical-align: middle; margin-right: 6px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+<script>
+  function addWorkload() {
+    const list = document.getElementById('workloadList');
+    const div = document.createElement('div');
+    div.className = 'workload-item';
+    div.innerHTML = '<input type="text" class="workload-input" placeholder="e.g. VMware, Azure, SAP HANA" required><button type="button" class="btn-remove" onclick="removeWorkload(this)" aria-label="Remove workload">✕</button>';
+    list.appendChild(div);
+  }
+
+  function removeWorkload(btn) {
+    const list = document.getElementById('workloadList');
+    if (list.children.length > 1) btn.parentElement.remove();
+  }
+
+  document.getElementById('pocForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const clientName = document.getElementById('clientName').value.trim();
+    const salesRepName = document.getElementById('salesRepName').value.trim();
+    const salesRepRole = document.getElementById('salesRepRole').value.trim();
+    const salesRepEmail = document.getElementById('salesRepEmail').value.trim();
+    const workloads = [...document.querySelectorAll('.workload-input')]
+      .map(i => i.value.trim()).filter(v => v.length > 0);
+
+    if (!clientName || workloads.length === 0 || !salesRepName || !salesRepRole || !salesRepEmail) {
+      showStatus('Please fill in all fields.', 'error');
+      return;
+    }
+
+    const btn = document.getElementById('submitBtn');
+    const status = document.getElementById('status');
+    btn.disabled = true;
+    status.className = '';
+    status.innerHTML = '<span class="spinner"></span> Generating document... this may take a minute.';
+
+    try {
+      const res = await fetch('/generate-poc', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clientName, workloads, salesRepName, salesRepRole, salesRepEmail }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || err.error || 'Server error');
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = res.headers.get('Content-Disposition')?.match(/filename="(.+)"/)?.[1] || `${clientName}_POC.docx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      showStatus('Document downloaded successfully!', 'success');
+    } catch (err) {
+      showStatus('Error: ' + err.message, 'error');
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  function showStatus(msg, type) {
+    const status = document.getElementById('status');
+    status.textContent = msg;
+    status.className = type;
+  }
+</script>
