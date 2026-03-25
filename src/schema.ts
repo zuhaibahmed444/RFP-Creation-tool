@@ -4,6 +4,7 @@ import { z } from "zod";
 export const GenerateRequestSchema = z.object({
   clientName: z.string().min(1),
   workloads: z.array(z.string().min(1)).min(1),
+  deploymentType: z.enum(["software", "saas"]),
   salesRepName: z.string().min(1),
   salesRepRole: z.string().min(1),
   salesRepEmail: z.string().email(),

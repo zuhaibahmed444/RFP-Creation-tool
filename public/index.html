@@ -60,6 +60,12 @@
       </div>
       <button type="button" class="btn-add" onclick="addWorkload()">+ Add Workload</button>
 
+      <label for="deploymentType">Deployment Type</label>
+      <select id="deploymentType" required style="width:100%;padding:10px 12px;border:1px solid #ccc;border-radius:6px;font-size:0.9rem;margin-bottom:14px;font-family:inherit;background:#fff;">
+        <option value="software">Software (On-Premises)</option>
+        <option value="saas">SaaS (Commvault Cloud)</option>
+      </select>
+
       <div class="section-title">POC Team</div>
       <label for="salesRepName">Sales Rep Name</label>
       <input type="text" id="salesRepName" placeholder="Enter sales rep name" required>
@@ -106,6 +112,7 @@
   document.getElementById('pocForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const clientName = document.getElementById('clientName').value.trim();
+    const deploymentType = document.getElementById('deploymentType').value;
     const salesRepName = document.getElementById('salesRepName').value.trim();
     const salesRepRole = document.getElementById('salesRepRole').value.trim();
     const salesRepEmail = document.getElementById('salesRepEmail').value.trim();
@@ -127,7 +134,7 @@
       const res = await fetch('/generate-poc', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ clientName, workloads, salesRepName, salesRepRole, salesRepEmail }),
+        body: JSON.stringify({ clientName, workloads, deploymentType, salesRepName, salesRepRole, salesRepEmail }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));

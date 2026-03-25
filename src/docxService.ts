@@ -369,18 +369,33 @@ export async function generateDocx(data: AiOutput, input: GenerateRequest): Prom
 
   children.push(heading2("Documentation Links"));
   children.push(heading3("Recommended Antivirus Exclusions"));
-  children.push(
-    hyperlinkBullet(
-      "Windows Exclusions",
-      "https://documentation.commvault.com/11.40/software/antivirus_exclusions_for_windows.html"
-    )
-  );
-  children.push(
-    hyperlinkBullet(
-      "Mac/Linux Exclusions",
-      "https://documentation.commvault.com/11.40/software/recommended_antivirus_exclusions_for_unix_and_mac.html"
-    )
-  );
+  if (input.deploymentType === "saas") {
+    children.push(
+      hyperlinkBullet(
+        "Windows Exclusions",
+        "https://documentation.commvault.com/11.42/software/antivirus_exclusions_for_windows.html?view=saas"
+      )
+    );
+    children.push(
+      hyperlinkBullet(
+        "Mac/Linux Exclusions",
+        "https://documentation.commvault.com/11.42/software/recommended_antivirus_exclusions_for_unix_and_mac.html?view=saas"
+      )
+    );
+  } else {
+    children.push(
+      hyperlinkBullet(
+        "Windows Exclusions",
+        "https://documentation.commvault.com/11.40/software/antivirus_exclusions_for_windows.html"
+      )
+    );
+    children.push(
+      hyperlinkBullet(
+        "Mac/Linux Exclusions",
+        "https://documentation.commvault.com/11.40/software/recommended_antivirus_exclusions_for_unix_and_mac.html"
+      )
+    );
+  }
   children.push(emptyLine());
 
   // ========== SECTION: POC Prerequisites (GLOBAL TABLE) ==========
