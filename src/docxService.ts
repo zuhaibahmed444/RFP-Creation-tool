@@ -386,13 +386,13 @@ export async function generateDocx(data: AiOutput, input: GenerateRequest): Prom
     children.push(
       hyperlinkBullet(
         "Windows Exclusions",
-        "https://documentation.commvault.com/11.40/software/antivirus_exclusions_for_windows.html"
+        "https://documentation.commvault.com/11.42/software/antivirus_exclusions_for_windows.html"
       )
     );
     children.push(
       hyperlinkBullet(
         "Mac/Linux Exclusions",
-        "https://documentation.commvault.com/11.40/software/recommended_antivirus_exclusions_for_unix_and_mac.html"
+        "https://documentation.commvault.com/11.42/software/recommended_antivirus_exclusions_for_unix_and_mac.html"
       )
     );
   }

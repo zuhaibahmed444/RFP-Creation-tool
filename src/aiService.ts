@@ -3,12 +3,31 @@ import { AiOutput, AiOutputSchema, GenerateRequest } from "./schema";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+function addBusinessDays(start: Date, days: number): Date {
+  const result = new Date(start);
+  let added = 0;
+  while (added < days) {
+    result.setDate(result.getDate() + 1);
+    const dow = result.getDay();
+    if (dow !== 0 && dow !== 6) added++;
+  }
+  return result;
+}
+
+function formatDate(d: Date): string {
+  return d.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+}
+
 function buildPrompt(req: GenerateRequest): string {
   const workloadList = req.workloads.join(", ");
   const isSaas = req.deploymentType === "saas";
   const platformLabel = isSaas ? "Commvault Cloud (SaaS)" : "Commvault Software (On-Premises)";
   const docsBaseUrl = "https://documentation.commvault.com/11.42/software/";
   const docsSuffix = isSaas ? "?view=saas" : "";
+
+  const today = new Date();
+  const pocStartDate = addBusinessDays(today, 5);
+  const pocStartStr = formatDate(pocStartDate);
 
   return `You are a senior Commvault pre-sales solutions architect preparing a formal Proof of Concept (POC) document for an enterprise customer engagement.
 
@@ -114,13 +133,24 @@ WORKLOADS IN SCOPE TABLE:
 HARDWARE REQUIREMENTS:
 - componentsTable: List realistic Commvault components (CommServe, MediaAgent, Access Nodes, Web Console, etc.) with quantities and roles.
 - hardwareSizingTable: Provide realistic CPU, Memory, Storage, and OS specifications for each component. Use enterprise-grade sizing.
-- documentationLinks: Provide 3-5 REAL documentation links from https://documentation.commvault.com/11.42/software/ that are relevant to the workloads. These must be real, valid Commvault documentation URLs in the format: https://documentation.commvault.com/11.42/software/{page_name}.html${docsSuffix}
-  Examples:
-  - ${docsBaseUrl}protecting_databases_with_commvault.html${docsSuffix}
-  - ${docsBaseUrl}system_requirements_for_commserve.html${docsSuffix}
-  - ${docsBaseUrl}network_port_requirements.html${docsSuffix}
-  IMPORTANT: Every documentation URL MUST end with .html${docsSuffix}
-  Use URLs that are relevant to ${workloadList} workloads specifically.
+- documentationLinks: Select 3-5 links from the VALIDATED LIST below that are most relevant to ${workloadList}. You MUST ONLY use links from this list — do NOT generate or guess URLs.
+
+  VALIDATED DOCUMENTATION LINKS (verified working on documentation.commvault.com/11.42):
+  - https://documentation.commvault.com/11.42/software/protecting_databases_with_commvault.html
+  - https://documentation.commvault.com/11.42/software/port_requirements_for_commvault.html
+  - https://documentation.commvault.com/11.42/software/sql_server.html
+  - https://documentation.commvault.com/11.42/software/oracle.html
+  - https://documentation.commvault.com/11.42/software/vmware.html
+  - https://documentation.commvault.com/11.42/software/hyper_v.html
+  - https://documentation.commvault.com/11.42/software/mysql.html
+  - https://documentation.commvault.com/11.42/software/postgresql.html
+  - https://documentation.commvault.com/11.42/software/sap_hana.html
+  - https://documentation.commvault.com/11.42/software/antivirus_exclusions_for_windows.html
+  - https://documentation.commvault.com/11.42/software/recommended_antivirus_exclusions_for_unix_and_mac.html
+
+  ${isSaas ? "FOR SAAS: Append ?view=saas to each selected link. Example: https://documentation.commvault.com/11.42/software/sql_server.html?view=saas" : "FOR SOFTWARE: Use the links exactly as listed above, no suffix."}
+
+  IMPORTANT: Do NOT invent or guess documentation URLs. Only use links from the list above.
 
 NETWORKING AND FIREWALL TABLE:
 - List all required ports for Commvault communication (8400, 8401, 8403, etc.) with correct protocols and purposes.
@@ -145,6 +175,8 @@ TEST CASES PER WORKLOAD:
 
 TIMELINES PER WORKLOAD:
 - MUST have one timelinesByWorkload entry for EACH workload: ${workloadList}
+- POC START DATE: ${pocStartStr} (this is today + 5 business days, excluding weekends)
+- ALL workloads run IN PARALLEL — they all start on ${pocStartStr}.
 - Each workload must have 6-10 timeline rows covering phases:
   * Phase 1: Environment Setup and Validation
   * Phase 2: Installation and Configuration
@@ -152,7 +184,18 @@ TIMELINES PER WORKLOAD:
   * Phase 4: Restore Operations Testing
   * Phase 5: Governance and Reporting Validation
   * Phase 6: Documentation and Handover
-- Use realistic dates starting from today's date, with 1-2 days per phase.
+
+DATE AND DURATION RULES (CRITICAL):
+- ALL workloads start on ${pocStartStr} — they are executed in parallel, not sequentially.
+- ONLY use business days (Monday–Friday). NEVER schedule on Saturday or Sunday.
+- Multiple phases/tasks CAN happen on the SAME day. Each task does NOT need a full day.
+- Assess the complexity of each workload:
+  * Simple workloads (File Server, VM backup, single standard DB): entire POC completes in 1-2 business days.
+  * Medium workloads (SQL Server, MySQL, PostgreSQL, Azure VMs): entire POC completes in 2 business days.
+  * Complex workloads (SAP HANA, Oracle RAC, Kubernetes, multi-tier apps): entire POC completes in max 3 business days.
+- The TOTAL timeline for any single workload must NOT exceed 3 business days.
+- Group related tasks on the same day where logical (e.g., setup + installation on Day 1, backup + restore testing on Day 2).
+- "date" field must be in format: "DD MMM YYYY" (e.g., "02 Apr 2026").
 - "task" must be specific and actionable.
 
 POC CLOSURE AND HANDOVER (2-3 paragraphs, 150-250 words):
@@ -186,7 +229,7 @@ Return ONLY valid JSON (no markdown, no code fences, no commentary) matching thi
     "hardwareSizingTable": [
       { "component": "string", "cpu": "string", "memory": "string", "storage": "string", "os": "string" }
     ],
-    "documentationLinks": ["string (URLs in format: ${docsBaseUrl}{page}.html${docsSuffix})"]
+    "documentationLinks": ["string (ONLY from the validated list provided above)"]
   },
   "networkingFirewallTable": [
     { "port": "string", "protocol": "string", "purpose": "string" }
@@ -217,7 +260,7 @@ CRITICAL RULES:
 - testCasesByWorkload MUST have EXACTLY ${req.workloads.length} entries, one for each: ${workloadList}
 - timelinesByWorkload MUST have EXACTLY ${req.workloads.length} entries, one for each: ${workloadList}
 - prerequisitesTable is a SINGLE GLOBAL table (NOT per-workload)
-- All documentation links MUST follow the format: ${docsBaseUrl}{page_name}.html${docsSuffix}
+- All documentation links MUST come from the validated list provided — do NOT generate or guess URLs
 - Content must be specific to ${req.clientName} and their industry — NOT generic
 - Write at consulting-grade quality suitable for senior IT leadership
 - Return ONLY the JSON object, absolutely nothing else`;
